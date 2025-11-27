@@ -1,0 +1,742 @@
+---
+title: "Econometrics"
+subtitle: "<span class='subtitle-text'>TA Session 9</span>"
+author: "Lucia Sauer"
+institute: "<em>Barcelona School of Economics</em>"
+date: "2025-11-27"
+format:
+  revealjs:
+    chalkboard: true
+    
+    slide-width: 1800
+    transition: fade
+    slide-number: true
+    progress: true
+    title-slide-attributes:
+      data-background-position: "95% 90%"
+      data-background-size: "100px"
+editor:
+  render-on-save: true
+
+---
+
+## Overview
+
+- Difference-in-Differences (DiD) recap
+- Assumptions for DiD
+- Application DiD
+
+---
+
+## Difference-in-Differences (DiD) recap
+
+- DiD is a quasi-experimental design that exploit **variation in time** (before vs. after) and across groups (treated vs. untreated) to recover causal effects of interest.
+- The key idea is to control for **unobserved confounders** that are constant over time and common trends affecting both groups.
+- Data Requirements: We need data from periods before and after treatment to use DiD (and some periods where no unit is treated).
+
+
+---
+
+## The DiD Estimator
+
+
+- The DiD estimator is calculated as:
+$$\text{DiD} = (\bar{Y}_{T,post} - \bar{Y}_{T,pre}) - (\bar{Y}_{C,post} - \bar{Y}_{C,pre})$$
+where:
+    - $\bar{Y}_{T,post}$: sample mean outcome of the treatment group after treatment
+    - $\bar{Y}_{T,pre}$: sample mean outcome of the treatment group before treatment
+    - $\bar{Y}_{C,post}$: sample mean outcome of the control group after treatment
+    - $\bar{Y}_{C,pre}$: sample mean outcome of the control group before treatment
+
+---
+
+## Assumptions for DiD
+
+**Parallel Trends Assumption**: In the absence of treatment, the average change in outcomes for the treatment group would have been the same as that for the control group.
+
+```{python}
+#| echo: false
+#| fig-center: true
+# DiD Estimation
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+from matplotlib.cm import viridis
+colors = [viridis(0.3),viridis(0.7)]
+import seaborn as sns
+sns.set(style="whitegrid", context="talk")
+data = pd.DataFrame({
+    'time': [0, 1, 0, 1],
+    'outcome': [20, 50, 10, 20],
+    'group': ['Treatment', 'Treatment', 'Control', 'Control']
+})
+
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='time', y='outcome', hue='group', marker='o', data=data, palette=colors)
+#add label to the points
+for i in range(data.shape[0]):
+    plt.text(data['time'][i], data['outcome'][i]+1,
+                f"{data['outcome'][i]}", 
+                horizontalalignment='center', 
+                size='medium', color='black', weight='semibold')
+#show x ticks as Pre and Post
+plt.xticks([0, 1], ['Pre-Treatment', 'Post-Treatment'])
+plt.xlabel('')
+plt.ylabel('Outcome')
+plt.yticks(range(0, 60, 20))
+plt.grid(False)
+sns.despine()
+plt.gca().spines['left'].set_color('black')
+plt.gca().spines['bottom'].set_color('black')
+plt.legend(frameon=False)
+plt.title('Raw Data')
+plt.show()
+```
+---
+
+## Assumptions for DiD
+
+**Parallel Trends Assumption**: In the absence of treatment, the average change in outcomes for the treatment group would have been the same as that for the control group.
+
+```{python}
+#| echo: false
+#| fig-center: true
+# DiD Estimation
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+from matplotlib.cm import viridis
+colors = [viridis(0.3),viridis(0.7)]
+import seaborn as sns
+sns.set(style="whitegrid", context="talk")
+data = pd.DataFrame({
+    'time': [0, 1, 0, 1],
+    'outcome': [20, 50, 10, 20],
+    'group': ['Treatment', 'Treatment', 'Control', 'Control']
+})
+
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='time', y='outcome', hue='group', marker='o', data=data, palette=colors)
+#add label to the points
+for i in range(data.shape[0]):
+    plt.text(data['time'][i], data['outcome'][i]+1,
+                f"{data['outcome'][i]}", 
+                horizontalalignment='center', 
+                size='medium', color='black', weight='semibold')
+
+#add a text box signaling that the line between 10, 20 saying average outcome for those untreated
+plt.text(0.5, 7, 'Average outcome for untreated', 
+         horizontalalignment='center', 
+         size='medium', color=colors[1], weight='semibold',
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[1])) 
+
+plt.text(0.5, 45, 'Average outcome for treated', 
+         horizontalalignment='center', 
+         size='medium', color=colors[0], weight='semibold',
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[0])) 
+
+#show x ticks as Pre and Post
+plt.xticks([0, 1], ['Pre-Treatment', 'Post-Treatment'])
+plt.xlabel('')
+plt.ylabel('Outcome')
+plt.yticks(range(0, 60, 20))
+plt.grid(False)
+sns.despine()
+plt.gca().spines['left'].set_color('black')
+plt.gca().spines['bottom'].set_color('black')
+plt.legend(frameon=False)
+plt.title('Raw Data')
+plt.show()
+```
+---
+
+
+## Assumptions for DiD
+
+**Parallel Trends Assumption**: In the absence of treatment, the average change in outcomes for the treatment group would have been the same as that for the control group.
+
+```{python}
+#| echo: false
+#| fig-center: true
+# DiD Estimation
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+from matplotlib.cm import viridis
+colors = [viridis(0.3),viridis(0.7)]
+import seaborn as sns
+sns.set(style="whitegrid", context="talk")
+data = pd.DataFrame({
+    'time': [0, 1, 0, 1, 0,1],
+    'outcome': [20, 50, 10, 20, 20, 30],
+    'group': ['Treatment', 'Treatment', 'Control', 'Control', 'Hipothetical Treated', 'Hipothetical Treated']
+})
+
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Treatment'], color=colors[0], label='Treatment')
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Hipothetical Treated'], color=colors[0], linestyle='--')
+
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Control'], color=colors[1], label='Control')
+#add label to the points
+for i in range(data.shape[0]):
+    plt.text(data['time'][i], data['outcome'][i]+1,
+                f"{data['outcome'][i]}", 
+                horizontalalignment='center', 
+                size='medium', color='black', weight='semibold')
+
+#add a text box signaling that the line between 10, 20 saying average outcome for those untreated
+plt.text(0.5, 10, 'Average outcome for untreated', 
+         horizontalalignment='center', 
+         size='small', color=colors[1], weight='semibold',
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[1])) 
+
+plt.text(0.5, 43, 'Average outcome for treated', 
+         horizontalalignment='center', 
+         size='small', color=colors[0], weight='semibold',
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[0])) 
+
+plt.text(0.7, 30, 'Average outcome for treated, \n in the absence of treatment', 
+         horizontalalignment='center', 
+         size='small', color=colors[0],
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[0], linestyle='--')) 
+
+#show x ticks as Pre and Post
+plt.xticks([0, 1], ['Pre-Treatment', 'Post-Treatment'])
+plt.xlabel('')
+plt.ylabel('Outcome')
+plt.yticks(range(0, 60, 20))
+plt.grid(False)
+sns.despine()
+plt.gca().spines['left'].set_color('black')
+plt.gca().spines['bottom'].set_color('black')
+plt.legend(frameon=False)
+plt.title('Raw Data + Counterfactuals via PT')
+plt.show()
+```
+---
+
+
+
+## Assumptions for DiD
+
+**Parallel Trends Assumption**: In the absence of treatment, the average change in outcomes for the treatment group would have been the same as that for the control group.
+
+```{python}
+#| echo: false
+#| fig-center: true
+
+# DiD Estimation
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+from matplotlib.cm import viridis
+colors = [viridis(0.3),viridis(0.7)]
+import seaborn as sns
+sns.set(style="whitegrid", context="talk")
+data = pd.DataFrame({
+    'time': [0, 1, 0, 1, 0,1],
+    'outcome': [20, 50, 10, 20, 20, 30],
+    'group': ['Treatment', 'Treatment', 'Control', 'Control', 'Hipothetical Treated', 'Hipothetical Treated']
+})
+
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Treatment'], color=colors[0], label='Treatment')
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Hipothetical Treated'], color=colors[0], linestyle='--')
+
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Control'], color=colors[1], label='Control')
+#add label to the points
+for i in range(data.shape[0]):
+    plt.text(data['time'][i], data['outcome'][i]+1,
+                f"{data['outcome'][i]}", 
+                horizontalalignment='center', 
+                size='medium', color='black', weight='semibold')
+
+#add a text box signaling that the line between 10, 20 saying average outcome for those untreated
+plt.text(0.5, 10, 'Average outcome for untreated', 
+         horizontalalignment='center', 
+         size='small', color=colors[1], weight='semibold',
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[1])) 
+
+plt.text(0.5, 43, 'Average outcome for treated', 
+         horizontalalignment='center', 
+         size='small', color=colors[0], weight='semibold',
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[0])) 
+
+plt.text(0.7, 30, 'Average outcome for treated, \n in the absence of treatment', 
+         horizontalalignment='center', 
+         size='small', color=colors[0],
+         bbox=dict(facecolor='white', alpha=0.5, edgecolor=colors[0], linestyle='--'))
+
+#add a vertical line between 50 and 30 at time 1 with label ATT
+plt.plot([1, 1], [30, 50], color='black', linestyle='--', linewidth=1)
+plt.text(1.05, 40, 'Treatment effect 20', color='black', bbox=dict(facecolor='white', alpha=0.5, edgecolor='black'))
+
+#show x ticks as Pre and Post
+plt.xticks([0, 1], ['Pre-Treatment', 'Post-Treatment'])
+plt.xlabel('')
+plt.ylabel('Outcome')
+plt.yticks(range(0, 60, 20))
+plt.grid(False)
+sns.despine()
+plt.gca().spines['left'].set_color('black')
+plt.gca().spines['bottom'].set_color('black')
+plt.legend(frameon=False)
+plt.title('Raw Data + Counterfactuals via PT + ATT')
+plt.show()
+```
+---
+
+
+
+## DiD and Regression
+
+The DiD model can be specified as:
+$$Y_{it} = \beta_0 + \beta_D \text{D}_i + \beta_T \text{Post}_t + \beta (\text{D}_i \times \text{Post}_t) + \epsilon_{it}$$
+
+
+```{python}
+#| echo: false
+#| fig-center: true
+
+# DiD Estimation
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+from matplotlib.cm import viridis
+colors = [viridis(0.3),viridis(0.7)]
+import seaborn as sns
+sns.set(style="whitegrid", context="talk")
+data = pd.DataFrame({
+    'time': [0, 1, 0, 1, 0,1],
+    'outcome': [20, 50, 10, 20, 20, 30],
+    'group': ['Treatment', 'Treatment', 'Control', 'Control', 'Hipothetical Treated', 'Hipothetical Treated']
+})
+
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Treatment'], color=colors[0], label='Treatment')
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Hipothetical Treated'], color=colors[0], linestyle='--')
+
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Control'], color=colors[1], label='Control')
+#add label to the points
+for i in range(data.shape[0]):
+    plt.text(data['time'][i], data['outcome'][i]+1,
+                f"{data['outcome'][i]}", 
+                horizontalalignment='center', 
+                size='medium', color='black', weight='semibold')
+
+
+
+
+#show x ticks as Pre and Post
+plt.xticks([0, 1], ['Pre-Treatment', 'Post-Treatment'])
+plt.xlabel('')
+plt.ylabel('Outcome')
+plt.yticks(range(0, 60, 20))
+plt.grid(False)
+sns.despine()
+plt.gca().spines['left'].set_color('black')
+plt.gca().spines['bottom'].set_color('black')
+plt.legend(frameon=False)
+plt.title('Raw Data + Counterfactuals via PT + ATT')
+plt.show()
+```
+
+---
+
+
+## DiD and Regression
+
+The DiD model can be specified as:
+$$Y_{it} = \beta_0 + \beta_D \text{D}_i + \beta_T \text{Post}_t + \beta (\text{D}_i \times \text{Post}_t) + \epsilon_{it}$$
+
+
+```{python}
+#| echo: false
+#| fig-center: true
+
+# DiD Estimation
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+from matplotlib.cm import viridis
+colors = [viridis(0.3),viridis(0.7)]
+import seaborn as sns
+sns.set(style="whitegrid", context="talk")
+data = pd.DataFrame({
+    'time': [0, 1, 0, 1, 0,1],
+    'outcome': [20, 50, 10, 20, 20, 30],
+    'group': ['Treatment', 'Treatment', 'Control', 'Control', 'Hipothetical Treated', 'Hipothetical Treated']
+})
+
+plt.figure(figsize=(10, 6))
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Treatment'], color=colors[0], label='Treatment')
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Hipothetical Treated'], color=colors[0], linestyle='--')
+
+sns.lineplot(x='time', y='outcome', marker='o', data=data.loc[data['group']=='Control'], color=colors[1], label='Control')
+#add label to the points
+for i in range(data.shape[0]):
+    plt.text(data['time'][i], data['outcome'][i]+1,
+                f"{data['outcome'][i]}", 
+                horizontalalignment='center', 
+                size='medium', color='black', weight='semibold')
+
+
+
+
+plt.plot([1, 1], [30, 50], color='black', linestyle='--', linewidth=1)
+plt.text(1.05, 40, r'$\beta=ATT$', color='black', bbox=dict(facecolor='white', alpha=0.5, edgecolor='black'))
+plt.text(1.05, 50, r'$\beta_0 + \beta_D + \beta_T + \beta$', color='black', bbox=dict(facecolor='white', alpha=0.5, 
+edgecolor='black'))
+plt.text(1.05, 30, r'$\beta_0 +  \beta_D + \beta_T$', color='black', bbox=dict(facecolor='white', alpha=0.5, edgecolor='black'))
+plt.text(1.05, 20, r'$\beta_0 + \beta_T$', color='black', bbox=dict(facecolor='white', alpha=0.5, edgecolor='black'))
+
+plt.text(0, 5, r'$\beta_0$', color='black', bbox=dict(facecolor='white', alpha=0.5, edgecolor='black'))
+
+plt.text(0, 27, r'$\beta_0 + \beta_D$', color='black', bbox=dict(facecolor='white', alpha=0.5, edgecolor='black'))
+
+#show x ticks as Pre and Post
+plt.xticks([0, 1], ['Pre-Treatment', 'Post-Treatment'])
+plt.xlabel('')
+plt.ylabel('Outcome')
+plt.yticks(range(0, 60, 20))
+plt.grid(False)
+sns.despine()
+plt.gca().spines['left'].set_color('black')
+plt.gca().spines['bottom'].set_color('black')
+plt.legend(frameon=False)
+plt.title('Raw Data + Counterfactuals via PT + ATT')
+plt.show()
+```
+
+---
+
+
+## DiD and Regression
+
+
+$$\beta=(\bar{Y}_{T,post} - \bar{Y}_{T, pre}) - (\bar{Y}_{C,post} - \bar{Y}_{C, pre})$$
+Rearranging the terms, we get:
+$$\beta=(\bar{Y}_{T,post} - \bar{Y}_{C, post}) - (\bar{Y}_{T,pre} - \bar{Y}_{C, pre})$$
+
+Which can be equivalently put as:
+
+- $(\bar{Y}_{T,post} - \bar{Y}_{C, post}) = \text{treatment effect + selection bias}$
+- $(\bar{Y}_{T,pre} - \bar{Y}_{C, pre}) = \text{selection bias}$
+
+- $\beta = \text{treatment effect}$
+
+
+---
+
+
+
+## Application DiD
+
+What is the effect of tutoring on students' GPA?
+
+```{python}
+data = {
+    "Student": [1,2,3,4,5,6,7,8,9,10,
+                1,2,3,4,5,6,7,8,9,10],
+    "Time": [0,0,0,0,0,0,0,0,0,0,
+             1,1,1,1,1,1,1,1,1,1],
+    "GPA": [2.7,2.6,2.9,3.0,2.8,2.8,3.0,3.2,3.1,3.5,
+            2.75,2.6,3.0,2.9,3.1,2.9,3.3,3.3,3.2,3.8],
+    "Tutoring": [0,0,0,0,0,1,1,1,1,1,
+                 0,0,0,0,0,1,1,1,1,1]
+}
+
+df = pd.DataFrame(data)
+df.sample(10)
+```
+
+
+---
+
+- We have data on two groups of students: those who received tutoring (treatment group) and those who did not (control group). 
+- We observe their GPA before and after the tutoring program was implemented.
+
+$$\beta = (\bar{GPA}_{tut, post} - \bar{GPA}_{tut, pre}) -
+ (\bar{GPA}_{control, post} - \bar{GPA}_{control, pre})$$
+
+
+```{python}
+#| echo: true
+gpa_pre_tutoring = df[(df['Time'] == 0) & (df['Tutoring'] == 1)]['GPA'].mean()
+gpa_post_tutoring = df[(df['Time'] == 1) & (df['Tutoring'] == 1)]['GPA'].mean()
+gpa_pre_no_tutoring = df[(df['Time'] == 0) & (df['Tutoring'] == 0)]['GPA'].mean()
+gpa_post_no_tutoring = df[(df['Time'] == 1) & (df['Tutoring'] == 0)]['GPA'].mean()
+
+diff_pre_treatment = gpa_pre_tutoring - gpa_pre_no_tutoring
+diff_post_treatment = gpa_post_tutoring - gpa_post_no_tutoring
+
+did_estimator = diff_post_treatment - diff_pre_treatment
+round(did_estimator, 3)
+```
+
+---
+
+The same DiD estimator can be obtained by estimating the following regression model:
+
+$$GPA_{it} = \beta_0 + \beta_\text{tutoring} \text{tutoring}_i + \beta_T \text{Post}_t + \beta (\text{tutoring}_i \times \text{Post}_t) + \epsilon_{it}$$
+
+where:
+
+- $GPA_{it}$ is the GPA of student $i$ at time $t$.
+- $\text{tutoring}_i$ is a binary variable indicating whether student $i$ received tutoring (1 if yes, 0 if no).
+- $\text{Post}_t$ is a binary variable indicating the time period (1 for post-treatment, 0 for pre-treatment).
+- $\beta$ is the DiD estimator, capturing the effect of tutoring on GPA.
+
+---
+
+We can also transform the outcome variable to represent the change in GPA for each student over time, and then regress this change on the treatment indicator.
+
+$$ \Delta GPA_i = GPA_{i, post} - GPA_{i, pre} $$
+
+The model then becomes:
+
+$$ \Delta GPA_i = \alpha + \beta \text{tutoring}_i + \epsilon_i $$
+
+---
+
+## **Organ Donor Registration and Policy Interventions**
+
+In the US there are different politics to enourage organ donations. When people sign up for a driver's license, they can choose between:
+
+- *Opt-in*: the default is not to donate; individuals must actively agree.
+- *Active choice*: individuals are required to make an explicit yes/no decision
+- *Opt-out*: individuals are automatically registered unless they decline.
+
+In **July 2011**, the state of California shifted from a traditional **opt-in** system to an **active-choice** approach. 
+
+
+> Kessler, J. B., & Roth, A. E. (2014).
+> *Don’t Take “No” for an Answer: An Experiment with Actual Organ Donor Registrations.*
+> National Bureau of Economic Research.
+
+---
+
+### Organ Donation Rates Over Time
+
+- California already doesn’t have a great organ donation rate, sitting near the bottom of the pack. 
+- California’s rate didn’t rise much after the policy went into effect - in fact, it seems to have dropped slightly.
+
+```{python}
+#| echo: false
+#| fig-center: true
+from causaldata import organ_donations
+
+od = organ_donations.load_pandas().data
+fig, ax = plt.subplots(figsize=(10,6))
+
+for state, group in od.groupby('State'):
+    if state == 'California':
+        ax.scatter(group['Quarter'], group['Rate'], 
+                    alpha=0.8, color='black', label=state, s=100)
+        ## also add line
+        ax.plot(group['Quarter'], group['Rate'], 
+                 alpha=0.8, color='black', linewidth=2)
+    else:
+        ax.scatter(group['Quarter'], group['Rate'], 
+                    alpha=0.3, color='grey', s=20)
+
+plt.ylabel('Organ Donation Rate')
+plt.axvline(x=3, color='black', linestyle='--', label='Policy Change (Q3 2011)', alpha=0.7, linewidth=1)
+plt.grid(False)
+plt.legend(frameon=False)
+# Cleaner style
+ax.spines["right"].set_visible(False)
+ax.spines["top"].set_visible(False)
+plt.show()
+```
+
+---
+
+## Two-Way Fixed Effects Model
+
+- We have more than two groups and two time periods. 
+
+- The goal here is to control for **group** differences, and also control for **time** differences. 
+
+$$rate_{it} = \alpha_{i} + \delta_{t} + \beta (\text{California}_i \times \text{Post}_t) + \epsilon_{it}$$
+
+where:
+
+- $rate_{it}$ is the organ donation rate in state $i$ at time $t$.
+- $\alpha_{i}$ captures state-specific fixed effects, controlling for time-invariant differences between states.
+- $\delta_{t}$ captures time-specific fixed effects, controlling for common shocks affecting all states at time $t$.
+- $\text{California}_{i}$ is a binary variable indicating whether state $i$ is California.
+- $\text{Post}_{t}$ is a binary variable indicating whether time $t$ is after the policy change.
+- $\beta$ is the DiD estimator, capturing the effect of the active-choice policy on organ donation rates.
+
+---
+
+### Estimation Results
+
+```{python}
+#| echo: true
+from linearmodels import PanelOLS
+#| echo: true
+od["Post"] = od["Quarter_Num"] > 3
+od["California"] = od["State"] == "California"
+od["Treated"] = (od["Post"] & od["California"]).astype(int)
+
+# Set panel index
+od = od.set_index(["State", "Quarter_Num"])
+
+# DID model with entity and time fixed effects
+model = PanelOLS.from_formula(
+    "Rate ~ Treated + EntityEffects + TimeEffects",
+    data=od
+)
+
+results = model.fit(cov_type="clustered", cluster_entity=True)
+print(results)
+```
+
+---
+
+### Event Study Analysis
+- An event study allows us to visualize the dynamics of the treatment effect over time.
+- Each estimated coefficient represents the effect of the treatment at different time points relative to the policy change.
+
+$$rate_{it} = \alpha_{i} + \delta_{t} + \sum_{k \neq -1} \beta_k D_{i,t+k} + \epsilon_{it}$$
+
+where:
+
+- $D_{i,t+k}$ is a binary variable that equals 1 if state $i$ is in period $k$ relative to the treatment time (with $k=-1$ as the omitted category).
+- $\beta_k$ captures the effect of the treatment at time $k$ relative to the treatment time.
+
+---
+
+### Eventy Study Results
+
+```{python}
+#| echo: false
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
+from matplotlib.cm import viridis
+import seaborn as sns
+import seaborn.objects as so
+
+from linearmodels import PanelOLS
+from causaldata import organ_donations
+
+sns.set(style="whitegrid", context="talk")
+colors = [viridis(0.3),viridis(0.7)]
+
+od = organ_donations.load_pandas().data.copy()
+
+# Treatment indicator
+od["California"] = (od["State"] == "California").astype(int)
+
+# generate dummies for Quarter_Num
+dummies = pd.get_dummies(od["Quarter_Num"], prefix="quarter")
+#interact quarter columns with California
+interaction = dummies.multiply(od["California"], axis=0)
+od = pd.concat([od, interaction], axis=1)
+
+# Panel structure
+od = od.set_index(["State", "Quarter_Num"])
+
+# Event study with ONLY entity fixed effects
+model = PanelOLS.from_formula('''Rate ~ quarter_1 + quarter_2 + 
+ quarter_4 + quarter_5 + quarter_6 + EntityEffects + TimeEffects''',od)
+res = model.fit(cov_type = 'clustered', cluster_entity = True)
+
+
+# 1. We only keep coefficients of the interactions California×Quarter
+params = res.params.filter(like="quarter_")
+ses = res.std_errors[params.index]
+
+# 2. We create the base table
+coef_df = pd.DataFrame({
+    "var": params.index,
+    "coef": params.values,
+    "se": ses.values,
+})
+
+# 3. We extract Quarter_Num from the variable name: quarter_1 → 1, etc.
+coef_df["Quarter_Num"] = coef_df["var"].str.split("_").str[1].astype(int)
+
+# 4. We add 95% confidence intervals
+coef_df["ci_low"] = coef_df["coef"] - 1.96 * coef_df["se"]
+coef_df["ci_high"] = coef_df["coef"] + 1.96 * coef_df["se"]
+
+# 5. We add the reference period (Q3) with effect = 0
+base_row = pd.DataFrame({
+    "var": ["quarter_3"],
+    "coef": [0.0],
+    "se": [0.0],
+    "Quarter_Num": [3],
+    "ci_low": [0.0],
+    "ci_high": [0.0],
+})
+
+coef_df = pd.concat([coef_df, base_row], ignore_index=True)
+
+# 6. We sort by Quarter_Num
+coef_df = coef_df.sort_values("Quarter_Num").reset_index(drop=True)
+
+# 7. We add “nice” quarter labels
+coef_df["Quarter"] = ["Q4 2010", "Q1 2011", "Q2 2011", "Q3 2011", "Q4 2011", "Q1 2012"]
+```
+
+```{python}
+#| echo: false
+fig, ax = plt.subplots(figsize=(10, 6))
+
+# 1. X axis: Quarter_Num, but text labels from 'Quarter'
+x = coef_df["Quarter_Num"]
+y = coef_df["coef"]
+
+# 2. Error bars (CIs)
+yerr_lower = y - coef_df["ci_low"]
+yerr_upper = coef_df["ci_high"] - y
+
+ax.errorbar(
+    x,
+    y,
+    yerr=[yerr_lower, yerr_upper],
+    fmt='o',               # point style
+    color='darkred',
+    ecolor='darkred',
+    elinewidth=1,
+    capsize=4,
+    alpha=0.9,
+)
+
+# 3. Join the points with a line
+ax.plot(x, y, color='darkred', linewidth=2, alpha=0.8)
+
+# 4. horizontal line at 0
+ax.axhline(0, color='black', linestyle='--', linewidth=1)
+
+# 5. vertical line to indicate policy change
+ax.axvline(x=4, color='black', linestyle='--',
+           label='Policy Change (Q3 2011)',
+           alpha=0.7, linewidth=1)
+
+ax.set_ylabel("DiD estimate (vs Q3 2011)")
+ax.set_xticks(coef_df["Quarter_Num"])
+ax.set_xticklabels(coef_df["Quarter"])
+plt.grid(False)
+ax.spines["right"].set_visible(False)
+ax.spines["top"].set_visible(False)
+
+plt.legend(frameon=False)
+plt.tight_layout()
+plt.show()
+
+
+```
